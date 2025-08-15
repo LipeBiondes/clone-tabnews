@@ -116,15 +116,22 @@ describe("GET /api/v1/user", () => {
         status_code: 401,
       });
     });
-    test("With close expired session", async () => {
+    test("With halfway-expired session", async () => {
+      jest.useFakeTimers({
+        now: new Date(Date.now() - session.EXPIRATION_IN_MILLISECONDS / 2),
+      });
+
       const createdUser = await orchestrator.createUser({
-        username: "UserWithCloseExpiredSession",
+        username: "UserWithHalfwayExpiredSession",
       });
 
       const sessionObject = await orchestrator.createSession(createdUser.id);
+
+      jest.useRealTimers();
+
       const response = await fetch("http://localhost:3000/api/v1/user", {
         headers: {
-          Cookie: `session_id=${sessionObject.token}`,
+          cookie: `session_id=${sessionObject.token}`,
         },
       });
 
@@ -134,7 +141,7 @@ describe("GET /api/v1/user", () => {
 
       expect(responseBody).toEqual({
         id: createdUser.id,
-        username: "UserWithCloseExpiredSession",
+        username: "UserWithHalfwayExpiredSession",
         email: createdUser.email,
         password: createdUser.password,
         created_at: createdUser.created_at.toISOString(),
@@ -145,24 +152,30 @@ describe("GET /api/v1/user", () => {
       expect(Date.parse(responseBody.created_at)).not.toBeNaN();
       expect(Date.parse(responseBody.updated_at)).not.toBeNaN();
 
-      jest.useFakeTimers({
-        now: new Date(Date.now() + session.EXPIRATION_IN_MILLISECONDS / 2),
-      });
-
-      await fetch("http://localhost:3000/api/v1/user", {
-        headers: {
-          Cookie: `session_id=${sessionObject.token}`,
-        },
-      });
-
+      // Session renewal assertions
       const renewedSessionObject = await session.findOneValidByToken(
         sessionObject.token,
       );
-      expect(renewedSessionObject.expires_at > sessionObject.expires_at).toBe(
-        true,
-      );
 
-      jest.useRealTimers();
+      expect(
+        renewedSessionObject.expires_at > sessionObject.expires_at,
+      ).toEqual(true);
+      expect(
+        renewedSessionObject.updated_at > sessionObject.updated_at,
+      ).toEqual(true);
+
+      // Set‑Cookie assertions
+      const parsedSetCookie = setCookieParser(response, {
+        map: true,
+      });
+
+      expect(parsedSetCookie.session_id).toEqual({
+        name: "session_id",
+        value: sessionObject.token,
+        maxAge: session.EXPIRATION_IN_MILLISECONDS / 1000,
+        path: "/",
+        httpOnly: true,
+      });
     });
   });
 });
