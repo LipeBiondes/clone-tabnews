@@ -1,12 +1,12 @@
 import email from "infra/email.js";
 import orchestrator from "tests/orchestrator.js";
 
-beforeAll( async () => {
+beforeAll(async () => {
   await orchestrator.waitForAllServices();
-})
+});
 
-describe("infra/email.js", ()=> {
-  test("send()", async()=> {
+describe("infra/email.js", () => {
+  test("send()", async () => {
     await orchestrator.deleteAllEMails();
 
     await email.send({
@@ -16,7 +16,7 @@ describe("infra/email.js", ()=> {
       text: "Teste de corpo.",
     });
 
-      await email.send({
+    await email.send({
       from: "FinTab <contato@fintab.com.br>",
       to: "<contato@curso.dev>",
       subject: "Ultimo email enviado",
@@ -29,6 +29,5 @@ describe("infra/email.js", ()=> {
     expect(lastEamail.recipients[0]).toBe("<contato@curso.dev>");
     expect(lastEamail.subject).toBe("Ultimo email enviado");
     expect(lastEamail.text).toBe("Corpo do ultimo email.\n");
-    
-  })
-})
+  });
+});

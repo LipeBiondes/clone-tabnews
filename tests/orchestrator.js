@@ -25,7 +25,7 @@ async function waitForAllServices() {
     }
   }
 
-    async function waitForEmailServer() {
+  async function waitForEmailServer() {
     return retry(fetchEmailPage, {
       retries: 100,
       maxTimeout: 1000,
@@ -70,11 +70,13 @@ async function deleteAllEMails() {
 async function getLastEmail() {
   const emailListResponse = await fetch(`${emailHttpUrl}/messages`, {
     method: "GET",
-  })
+  });
   const emailListBody = await emailListResponse.json();
   const lastEmailItem = emailListBody.pop();
 
-  const emailTextResponse = await fetch(`${emailHttpUrl}/messages/${lastEmailItem.id}.plain`)
+  const emailTextResponse = await fetch(
+    `${emailHttpUrl}/messages/${lastEmailItem.id}.plain`,
+  );
   const emailTextBody = await emailTextResponse.text();
 
   lastEmailItem.text = emailTextBody;
